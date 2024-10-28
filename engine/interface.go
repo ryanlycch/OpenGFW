@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"time"
 
 	"github.com/apernet/OpenGFW/io"
 	"github.com/apernet/OpenGFW/ruleset"
@@ -18,13 +19,14 @@ type Engine interface {
 // Config is the configuration for the engine.
 type Config struct {
 	Logger  Logger
-	IOs     []io.PacketIO
+	IO      io.PacketIO
 	Ruleset ruleset.Ruleset
 
 	Workers                          int // Number of workers. Zero or negative means auto (number of CPU cores).
 	WorkerQueueSize                  int
 	WorkerTCPMaxBufferedPagesTotal   int
 	WorkerTCPMaxBufferedPagesPerConn int
+	WorkerTCPTimeout                 time.Duration
 	WorkerUDPMaxStreams              int
 }
 
@@ -36,6 +38,7 @@ type Logger interface {
 	TCPStreamNew(workerID int, info ruleset.StreamInfo)
 	TCPStreamPropUpdate(info ruleset.StreamInfo, close bool)
 	TCPStreamAction(info ruleset.StreamInfo, action ruleset.Action, noMatch bool)
+	TCPFlush(workerID, flushed, closed int)
 
 	UDPStreamNew(workerID int, info ruleset.StreamInfo)
 	UDPStreamPropUpdate(info ruleset.StreamInfo, close bool)

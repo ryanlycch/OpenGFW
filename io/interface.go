@@ -2,6 +2,8 @@ package io
 
 import (
 	"context"
+	"net"
+	"time"
 )
 
 type Verdict int
@@ -23,13 +25,14 @@ const (
 type Packet interface {
 	// StreamID is the ID of the stream the packet belongs to.
 	StreamID() uint32
+	// Timestamp is the time the packet was received.
+	Timestamp() time.Time
 	// Data is the raw packet data, starting with the IP header.
 	Data() []byte
 }
 
 // PacketCallback is called for each packet received.
 // Return false to "unregister" and stop receiving packets.
-// It must be safe for concurrent use.
 type PacketCallback func(Packet, error) bool
 
 type PacketIO interface {
@@ -39,8 +42,15 @@ type PacketIO interface {
 	Register(context.Context, PacketCallback) error
 	// SetVerdict sets the verdict for a packet.
 	SetVerdict(Packet, Verdict, []byte) error
+	// ProtectedDialContext is like net.DialContext, but the connection is "protected"
+	// in the sense that the packets sent/received through the connection must bypass
+	// the packet IO and not be processed by the callback.
+	ProtectedDialContext(ctx context.Context, network, address string) (net.Conn, error)
 	// Close closes the packet IO.
 	Close() error
+	// SetCancelFunc gives packet IO access to context cancel function, enabling it to
+	// trigger a shutdown
+	SetCancelFunc(cancelFunc context.CancelFunc) error
 }
 
 type ErrInvalidPacket struct {
